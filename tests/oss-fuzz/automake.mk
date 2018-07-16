@@ -8,6 +8,7 @@ oss-fuzz-targets: $(OSS_FUZZ_TARGETS)
 tests_oss_fuzz_flow_extract_target_SOURCES = \
 	tests/oss-fuzz/flow_extract_target.c \
 	tests/oss-fuzz/fuzzer.h
+tests_oss_fuzz_flow_extract_target_CFLAGS = $(CFLAGS)
 tests_oss_fuzz_flow_extract_target_LDADD = lib/libopenvswitch.la \
 					   $(LIB_FUZZING_ENGINE)
 
