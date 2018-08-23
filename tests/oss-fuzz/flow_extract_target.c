@@ -38,9 +38,11 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     ofp_print_packet(stdout, dp_packet_data(&packet), dp_packet_size(&packet), htonl(PT_ETH));
     ovs_hex_dump(stdout, dp_packet_data(&packet), dp_packet_size(&packet), 0, true);
     match_print(&match, NULL);
-    printf("Actually extracted flow:\n%s\n", ext_s);
-    ovs_hex_dump(stdout, &ext_match, sizeof ext_match, 0, false);
-    free(ext_s);
+    if (ext_s) {
+        printf("Actually extracted flow:\n%s\n", ext_s);
+        free(ext_s);
+    }
 
+    ovs_hex_dump(stdout, &ext_match, sizeof ext_match, 0, false);
     return 0;
 }
