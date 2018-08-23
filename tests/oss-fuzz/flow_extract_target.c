@@ -2,6 +2,7 @@
 #include "fuzzer.h"
 #include "dp-packet.h"
 #include "flow.h"
+#include "match.h"
 
 int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
