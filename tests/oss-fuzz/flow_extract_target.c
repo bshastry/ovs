@@ -13,11 +13,6 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     struct match match;
     struct match flow_metadata;
     struct ofp10_match ext_match;
-    char *ext_s = NULL;
-
-    if (size == 0) {
-        return 0;
-    }
 
     dp_packet_use_const(&packet, data, size);
     flow_extract(&packet, &flow);
@@ -39,14 +34,9 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     ofputil_match_to_ofp10_match(&match, &ext_match);
 
     // Print match and packet
-    ext_s = ofp10_match_to_string(&ext_match, NULL, 2);
     ofp_print_packet(stdout, dp_packet_data(&packet), dp_packet_size(&packet), htonl(PT_ETH));
     ovs_hex_dump(stdout, dp_packet_data(&packet), dp_packet_size(&packet), 0, true);
     match_print(&match, NULL);
-    if (ext_s) {
-        printf("Actually extracted flow:\n%s\n", ext_s);
-        free(ext_s);
-    }
 
     ovs_hex_dump(stdout, &ext_match, sizeof ext_match, 0, false);
     return 0;
