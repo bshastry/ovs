@@ -1,4 +1,5 @@
 #include <config.h>
+#include <assert.h>
 #include "fuzzer.h"
 #include "dp-packet.h"
 #include "flow.h"
@@ -6,9 +7,47 @@
 #include "openvswitch/ofp-print.h"
 #include "openvswitch/match.h"
 
+/* Returns a copy of 'src'.  The caller must eventually free the returned
+ * miniflow with free(). */
+static struct miniflow *
+miniflow_clone__(const struct miniflow *src)
+{
+    struct miniflow *dst;
+    size_t data_size;
+
+    data_size = miniflow_alloc(&dst, 1, src);
+    miniflow_clone(dst, src, data_size / sizeof(uint64_t));
+    return dst;
+}
+
+/* Returns a hash value for 'flow', given 'basis'. */
+static inline uint32_t
+miniflow_hash__(const struct miniflow *flow, uint32_t basis)
+{
+    const uint64_t *p = miniflow_get_values(flow);
+    size_t n_values = miniflow_n_values(flow);
+    struct flowmap hash_map = FLOWMAP_EMPTY_INITIALIZER;
+    uint32_t hash = basis;
+    size_t idx;
+
+    FLOWMAP_FOR_EACH_INDEX(idx, flow->map) {
+        uint64_t value = *p++;
+
+        if (value) {
+            hash = hash_add64(hash, value);
+            flowmap_set(&hash_map, idx, 1);
+        }
+    }
+    map_t map;
+    FLOWMAP_FOR_EACH_MAP (map, hash_map) {
+        hash = hash_add64(hash, map);
+    }
+
+    return hash_finish(hash, n_values);
+}
+
 static void test_miniflow(struct flow *flow)
 {
-    struct miniflow *miniflow;
     struct miniflow *miniflow, *miniflow2, *miniflow3;
     struct flow flow2, flow3;
     int i;
@@ -21,7 +60,7 @@ static void test_miniflow(struct flow *flow)
     /* Check that the flow equals its miniflow. */
     for (i = 0; i < FLOW_MAX_VLAN_HEADERS; i++) {
         assert(miniflow_get_vid(miniflow, i) ==
-               vlan_tci_to_vid(flow.vlans[i].tci));
+               vlan_tci_to_vid(flow->vlans[i].tci));
     }
     for (i = 0; i < FLOW_U64S; i++) {
         assert(miniflow_get(miniflow, i) == flow_u64[i]);
@@ -31,14 +70,14 @@ static void test_miniflow(struct flow *flow)
     assert(miniflow_equal(miniflow, miniflow));
 
     /* Convert miniflow back to flow and verify that it's the same. */
-    miniflow_expand(miniflow, &flow2)
-    assert(flow_equal(&flow, &flow2));
+    miniflow_expand(miniflow, &flow2);
+    assert(flow_equal(flow, &flow2));
     /* Check that copying a miniflow works properly. */
     miniflow2 = miniflow_clone__(miniflow);
     assert(miniflow_equal(miniflow, miniflow2));
     assert(miniflow_hash__(miniflow, 0) == miniflow_hash__(miniflow2, 0));
     miniflow_expand(miniflow2, &flow3);
-    assert(flow_equal(&flow, &flow3));
+    assert(flow_equal(flow, &flow3));
 
     free(miniflow);
     free(miniflow2);
