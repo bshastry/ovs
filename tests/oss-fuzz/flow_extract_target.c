@@ -7,6 +7,7 @@
 #include "openvswitch/ofp-match.h"
 #include "openvswitch/ofp-print.h"
 #include "openvswitch/match.h"
+#include "classifier-private.h"
 
 static void
 shuffle_u32s(uint32_t *p, size_t n)
