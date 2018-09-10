@@ -255,7 +255,7 @@ static void test_miniflow(struct flow *flow)
     assert(miniflow_equal_in_minimask(miniflow, miniflow2, minimask));
     assert(miniflow_equal_flow_in_minimask(miniflow, &flow2, minimask));
     assert(miniflow_hash_in_minimask(miniflow, minimask, 0x12345678) ==
-           flow_hash_in_minimask(&flow, minimask, 0x12345678));
+           flow_hash_in_minimask(flow, minimask, 0x12345678));
     assert(minimask_hash(minimask, 0) ==
            miniflow_hash__(&minimask->masks, 0));
 
