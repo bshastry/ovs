@@ -46,10 +46,162 @@ miniflow_hash__(const struct miniflow *flow, uint32_t basis)
     return hash_finish(hash, n_values);
 }
 
+static uint32_t
+random_value(void)
+{
+    static const uint32_t values_[] =
+        { 0xffffffff, 0xaaaaaaaa, 0x55555555, 0x80000000,
+          0x00000001, 0xface0000, 0x00d00d1e, 0xdeadbeef };
+
+    return values_[random_range(ARRAY_SIZE(values_))];
+}
+
+static bool
+choose(unsigned int n, unsigned int *idxp)
+{
+    if (*idxp < n) {
+        return true;
+    } else {
+        *idxp -= n;
+        return false;
+    }
+}
+
+#define FLOW_U32S (FLOW_U64S * 2)
+
+static bool
+init_consecutive_values(int n_consecutive, struct flow *flow,
+                        unsigned int *idxp)
+{
+    uint32_t *flow_u32 = (uint32_t *) flow;
+
+    if (choose(FLOW_U32S - n_consecutive + 1, idxp)) {
+        int i;
+
+        for (i = 0; i < n_consecutive; i++) {
+            flow_u32[*idxp + i] = random_value();
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+static bool
+next_random_flow(struct flow *flow, unsigned int idx)
+{
+    uint32_t *flow_u32 = (uint32_t *) flow;
+
+    memset(flow, 0, sizeof *flow);
+
+    /* Empty flow. */
+    if (choose(1, &idx)) {
+        return true;
+    }
+
+    /* All flows with a small number of consecutive nonzero values. */
+    for (int i = 1; i <= 4; i++) {
+        if (init_consecutive_values(i, flow, &idx)) {
+            return true;
+        }
+    }
+
+    /* All flows with a large number of consecutive nonzero values. */
+    for (int i = FLOW_U32S - 4; i <= FLOW_U32S; i++) {
+        if (init_consecutive_values(i, flow, &idx)) {
+            return true;
+        }
+    }
+
+    /* All flows with exactly two nonconsecutive nonzero values. */
+    if (choose((FLOW_U32S - 1) * (FLOW_U32S - 2) / 2, &idx)) {
+        int ofs1;
+
+        for (ofs1 = 0; ofs1 < FLOW_U32S - 2; ofs1++) {
+            int ofs2;
+
+            for (ofs2 = ofs1 + 2; ofs2 < FLOW_U32S; ofs2++) {
+                if (choose(1, &idx)) {
+                    flow_u32[ofs1] = random_value();
+                    flow_u32[ofs2] = random_value();
+                    return true;
+                }
+            }
+        }
+        OVS_NOT_REACHED();
+    }
+
+    /* 16 randomly chosen flows with N >= 3 nonzero values. */
+    if (choose(16 * (FLOW_U32S - 4), &idx)) {
+        int n = idx / 16 + 3;
+
+        for (int i = 0; i < n; i++) {
+            flow_u32[i] = random_value();
+        }
+        shuffle_u32s(flow_u32, FLOW_U32S);
+
+        return true;
+    }
+
+    return false;
+}
+
+static void
+any_random_flow(struct flow *flow)
+{
+    static unsigned int max;
+    if (!max) {
+        while (next_random_flow(flow, max)) {
+            max++;
+        }
+    }
+
+    next_random_flow(flow, random_range(max));
+}
+
+static void
+toggle_masked_flow_bits(struct flow *flow, const struct flow_wildcards *mask)
+{
+    const uint32_t *mask_u32 = (const uint32_t *) &mask->masks;
+    uint32_t *flow_u32 = (uint32_t *) flow;
+    int i;
+
+    for (i = 0; i < FLOW_U32S; i++) {
+        if (mask_u32[i] != 0) {
+            uint32_t bit;
+
+            do {
+                bit = 1u << random_range(32);
+            } while (!(bit & mask_u32[i]));
+            flow_u32[i] ^= bit;
+        }
+    }
+}
+
+static void
+wildcard_extra_bits(struct flow_wildcards *mask)
+{
+    uint32_t *mask_u32 = (uint32_t *) &mask->masks;
+    int i;
+
+    for (i = 0; i < FLOW_U32S; i++) {
+        if (mask_u32[i] != 0) {
+            uint32_t bit;
+
+            do {
+                bit = 1u << random_range(32);
+            } while (!(bit & mask_u32[i]));
+            mask_u32[i] &= ~bit;
+        }
+    }
+}
+
 static void test_miniflow(struct flow *flow)
 {
     struct miniflow *miniflow, *miniflow2, *miniflow3;
     struct flow flow2, flow3;
+    struct flow_wildcards mask;
+    struct minimask *minimask;
     int i;
 
     const uint64_t *flow_u64 = (const uint64_t *) flow;
@@ -79,9 +231,32 @@ static void test_miniflow(struct flow *flow)
     miniflow_expand(miniflow2, &flow3);
     assert(flow_equal(flow, &flow3));
 
+    /* Check that masked matches work as expected for identical flows and
+         * miniflows. */
+    do {
+            next_random_flow(&mask.masks, 1);
+    } while (flow_wildcards_is_catchall(&mask));
+    minimask = minimask_create(&mask);
+    assert(minimask_is_catchall(minimask)
+           == flow_wildcards_is_catchall(&mask));
+    assert(miniflow_equal_in_minimask(miniflow, miniflow2, minimask));
+    assert(miniflow_equal_flow_in_minimask(miniflow, &flow2, minimask));
+    assert(miniflow_hash_in_minimask(miniflow, minimask, 0x12345678) ==
+           flow_hash_in_minimask(&flow, minimask, 0x12345678));
+    assert(minimask_hash(minimask, 0) ==
+           miniflow_hash__(&minimask->masks, 0));
+
+    /* Check that masked matches work as expected for differing flows and
+     * miniflows. */
+    toggle_masked_flow_bits(&flow2, &mask);
+    assert(!miniflow_equal_flow_in_minimask(miniflow, &flow2, minimask));
+    miniflow3 = miniflow_create(&flow2);
+    assert(!miniflow_equal_in_minimask(miniflow, miniflow3, minimask));
+
     free(miniflow);
     free(miniflow2);
     free(miniflow3);
+    free(minimask);
 }
 
 static void test_minimask_has_extra(struct flow *flow)
