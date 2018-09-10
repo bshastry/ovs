@@ -84,6 +84,75 @@ static void test_miniflow(struct flow *flow)
     free(miniflow3);
 }
 
+static void test_minimask_has_extra(struct flow *flow)
+{
+    struct flow_wildcards catchall;
+    struct minimask *minicatchall;
+
+    flow_wildcards_init_catchall(&catchall);
+    minicatchall = minimask_create(&catchall);
+    assert(minimask_is_catchall(minicatchall));
+
+    struct flow_wildcards mask;
+    struct minimask *minimask;
+
+    mask.masks = *flow;
+    minimask = minimask_create(&mask);
+    assert(!minimask_has_extra(minimask, minimask));
+    assert(minimask_has_extra(minicatchall, minimask)
+           == !minimask_is_catchall(minimask));
+    if (!minimask_is_catchall(minimask)) {
+        struct minimask *minimask2;
+
+        wildcard_extra_bits(&mask);
+        minimask2 = minimask_create(&mask);
+        assert(minimask_has_extra(minimask2, minimask));
+        assert(!minimask_has_extra(minimask, minimask2));
+        free(minimask2);
+    }
+
+    free(minimask);
+    free(minicatchall);
+}
+
+static void test_minimask_combine(struct flow *flow)
+{
+    struct flow_wildcards catchall;
+    struct minimask *minicatchall;
+
+    flow_wildcards_init_catchall(&catchall);
+    minicatchall = minimask_create(&catchall);
+    assert(minimask_is_catchall(minicatchall));
+
+    struct minimask *minimask, *minimask2;
+    struct flow_wildcards mask, mask2, combined, combined2;
+    struct {
+        struct minimask minicombined;
+        uint64_t storage[FLOW_U64S];
+    } m;
+    struct flow flow2;
+
+    mask.masks = *flow;
+    minimask = minimask_create(&mask);
+
+    minimask_combine(&m.minicombined, minimask, minicatchall, m.storage);
+    assert(minimask_is_catchall(&m.minicombined));
+
+    any_random_flow(&flow2);
+    mask2.masks = flow2;
+    minimask2 = minimask_create(&mask2);
+
+    minimask_combine(&m.minicombined, minimask, minimask2, m.storage);
+    flow_wildcards_and(&combined, &mask, &mask2);
+    minimask_expand(&m.minicombined, &combined2);
+    assert(flow_wildcards_equal(&combined, &combined2));
+
+    free(minimask);
+    free(minimask2);
+
+    free(minicatchall);
+}
+
 int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -96,8 +165,10 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     struct flowmap fmap;
     flow_wc_map(&flow, &fmap);
 
-    /* Test miniflow. */
+    /* Do miniflow tests. */
     test_miniflow(&flow);
+    test_minimask_has_extra(&flow);
+    test_minimask_combine(&flow);
 
     /* Parse TCP flags. */
     if (dp_packet_size(&packet) >= ETH_HEADER_LEN) {
