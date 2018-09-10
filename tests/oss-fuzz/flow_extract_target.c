@@ -1,4 +1,5 @@
 #include <config.h>
+#include "classifier.h"
 #include <assert.h>
 #include "fuzzer.h"
 #include "dp-packet.h"
@@ -6,6 +7,17 @@
 #include "openvswitch/ofp-match.h"
 #include "openvswitch/ofp-print.h"
 #include "openvswitch/match.h"
+
+static void
+shuffle_u32s(uint32_t *p, size_t n)
+{
+    for (; n > 1; n--, p++) {
+        uint32_t *q = &p[random_range(n)];
+        uint32_t tmp = *p;
+        *p = *q;
+        *q = tmp;
+    }
+}
 
 /* Returns a copy of 'src'.  The caller must eventually free the returned
  * miniflow with free(). */
