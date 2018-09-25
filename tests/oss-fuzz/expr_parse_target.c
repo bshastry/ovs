@@ -345,7 +345,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
 
     ds_init(&input);
-    ds_put_cstr(&input, data);
+    ds_put_cstr(&input, (const char *)data);
     /* Parse expr. */
     test_parse_expr(&input, 0);
     /* Annotate expr. */
@@ -357,7 +357,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     /* Expr to flows. */
     test_parse_expr(&input, 4);
     /* Parse actions. */
-    test_parse_actions(input); 
+    test_parse_actions(&input); 
     ds_destroy(&input);
     return 0;
 }
