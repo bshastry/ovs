@@ -401,6 +401,14 @@ static void test_parse_expr(struct ds *input, int steps)
     shash_destroy(&port_groups);
 }
 
+static bool
+lookup_atoi_cb(const void *aux OVS_UNUSED, const char *port_name,
+               unsigned int *portp)
+{
+    *portp = atoi(port_name);
+    return true;
+}
+
 static void
 test_expr_to_packets(struct ds *input)
 {
