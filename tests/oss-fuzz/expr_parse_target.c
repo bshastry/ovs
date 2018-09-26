@@ -401,6 +401,38 @@ static void test_parse_expr(struct ds *input, int steps)
     shash_destroy(&port_groups);
 }
 
+static void
+test_expr_to_packets(struct ds *input)
+{
+    struct shash symtab;
+    create_symtab(&symtab);
+
+    struct flow uflow;
+    char *error = expr_parse_microflow(ds_cstr(input), &symtab, NULL, NULL, lookup_atoi_cb, NULL, &uflow);
+    if (error) {
+        puts(error);
+        free(error);
+        return;
+    }
+
+    uint64_t packet_stub[128 / 8];
+    struct dp_packet packet;
+    dp_packet_use_stub(&packet, packet_stub, sizeof packet_stub);
+    flow_compose(&packet, &uflow, NULL, 64);
+
+    struct ds output = DS_EMPTY_INITIALIZER;
+    const uint8_t *buf = dp_packet_data(&packet);
+    for (int i = 0; i < dp_packet_size(&packet); i++) {
+        uint8_t val = buf[i];
+        ds_put_format(&output, "%02"PRIx8, val);
+    }
+    puts(ds_cstr(&output));
+    ds_destroy(&output);
+    dp_packet_uninit(&packet);
+    expr_symtab_destroy(&symtab);
+    shash_destroy(&symtab);
+}
+
 int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -426,6 +458,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     test_parse_actions(&input); 
     /* Test OVN lexer. */
     test_lex(&input);
+    /* Expr to packets. */
+    test_expr_to_packets(&input);
     ds_destroy(&input);
     return 0;
 }
