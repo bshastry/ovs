@@ -420,6 +420,8 @@ test_expr_to_packets(struct ds *input)
     if (error) {
         puts(error);
         free(error);
+	expr_symtab_destroy(&symtab);
+        shash_destroy(&symtab);
         return;
     }
 
