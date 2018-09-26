@@ -263,6 +263,8 @@ test_parse_actions(struct ds *input)
     dhcp_opts_destroy(&dhcp_opts);
     dhcp_opts_destroy(&dhcpv6_opts);
     nd_ra_opts_destroy(&nd_ra_opts);
+    ovn_extend_table_destroy(&group_table);
+    ovn_extend_table_destroy(&meter_table);
 }
 
 static void test_parse_expr(struct ds *input, int steps)
