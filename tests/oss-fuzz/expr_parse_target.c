@@ -24,6 +24,78 @@
 #include "util.h"
 
 static void
+compare_token(const struct lex_token *a, const struct lex_token *b)
+{
+    if (a->type != b->type) {
+        fprintf(stderr, "type differs: %d -> %d\n", a->type, b->type);
+        return;
+    }
+
+    if (!((a->s && b->s && !strcmp(a->s, b->s))
+          || (!a->s && !b->s))) {
+        fprintf(stderr, "string differs: %s -> %s\n",
+                a->s ? a->s : "(null)",
+                b->s ? b->s : "(null)");
+        return;
+    }
+
+    if (a->type == LEX_T_INTEGER || a->type == LEX_T_MASKED_INTEGER) {
+        if (memcmp(&a->value, &b->value, sizeof a->value)) {
+            fprintf(stderr, "value differs\n");
+            return;
+        }
+
+        if (a->type == LEX_T_MASKED_INTEGER
+            && memcmp(&a->mask, &b->mask, sizeof a->mask)) {
+            fprintf(stderr, "mask differs\n");
+            return;
+        }
+
+        if (a->format != b->format
+            && !(a->format == LEX_F_HEXADECIMAL
+                 && b->format == LEX_F_DECIMAL
+                 && a->value.integer == 0)) {
+            fprintf(stderr, "format differs: %d -> %d\n",
+                    a->format, b->format);
+        }
+    }
+}
+
+static void
+test_lex(struct ds *input)
+{
+    struct ds output;
+
+    ds_init(&output);
+    struct lexer lexer;
+
+    lexer_init(&lexer, ds_cstr(input));
+    ds_clear(&output);
+    while (lexer_get(&lexer) != LEX_T_END) {
+        size_t len = output.length;
+        lex_token_format(&lexer.token, &output);
+
+        /* Check that the formatted version can really be parsed back
+         * losslessly. */
+        if (lexer.token.type != LEX_T_ERROR) {
+            const char *s = ds_cstr(&output) + len;
+            struct lexer l2;
+
+            lexer_init(&l2, s);
+            lexer_get(&l2);
+            compare_token(&lexer.token, &l2.token);
+            lexer_destroy(&l2);
+        }
+        ds_put_char(&output, ' ');
+    }
+    lexer_destroy(&lexer);
+
+    ds_chomp(&output, ' ');
+    puts(ds_cstr(&output));
+    ds_destroy(&output);
+}
+
+static void
 create_symtab(struct shash *symtab)
 {
     ovn_init_symtab(symtab);
@@ -352,6 +424,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     test_parse_expr(&input, 4);
     /* Parse actions. */
     test_parse_actions(&input); 
+    /* Test OVN lexer. */
+    test_lex(&input);
     ds_destroy(&input);
     return 0;
 }
