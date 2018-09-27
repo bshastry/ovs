@@ -26,9 +26,9 @@ tests_oss_fuzz_ofp_print_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
 
 tests_oss_fuzz_expr_parse_target_SOURCES = \
         tests/oss-fuzz/expr_parse_target.c \
-	tests/oss-fuzz/fuzzer.h
+        tests/oss-fuzz/fuzzer.h
 tests_oss_fuzz_expr_parse_target_LDADD = lib/libopenvswitch.la \
-					 ovn/lib/libovn.la
+                                         ovn/lib/libovn.la
 tests_oss_fuzz_expr_parse_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
 
 EXTRA_DIST += \

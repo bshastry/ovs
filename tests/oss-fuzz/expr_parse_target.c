@@ -469,7 +469,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     /* Parse, annotate, simplify, normalize expr and convert to flows. */
     test_parse_expr(&input, 4);
     /* Parse actions. */
-    test_parse_actions(&input); 
+    test_parse_actions(&input);
     /* Test OVN lexer. */
     test_lex(&input);
     /* Expr to packets. */
