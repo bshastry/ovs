@@ -219,7 +219,6 @@ test_parse_actions(struct ds *input)
     struct hmap dhcpv6_opts;
     struct hmap nd_ra_opts;
     struct simap ports;
-    bool ok = true;
 
     create_symtab(&symtab);
     create_gen_opts(&dhcp_opts, &dhcpv6_opts, &nd_ra_opts);
@@ -307,13 +306,11 @@ test_parse_actions(struct ds *input)
             ovnacts_format(ovnacts2.data, ovnacts2.size, &ovnacts2_s);
             if (strcmp(ds_cstr(&ovnacts_s), ds_cstr(&ovnacts2_s))) {
                 printf("    bad reformat: %s\n", ds_cstr(&ovnacts2_s));
-                ok = false;
             }
             ds_destroy(&ovnacts2_s);
         } else {
             printf("    reparse error: %s\n", error);
             free(error);
-            ok = false;
         }
         expr_destroy(prereqs2);
 
@@ -462,6 +459,13 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     ds_init(&input);
     ds_put_cstr(&input, (const char *)data);
+
+    char *isNewLine = strpbrk(ds_cstr(&input), "\n");
+    if (isNewLine) {
+        ds_destroy(&input);
+        return 0;
+    }
+
     /* Parse, annotate, simplify, normalize expr and convert to flows. */
     test_parse_expr(&input, 4);
     /* Parse actions. */
