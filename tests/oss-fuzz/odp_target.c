@@ -7,7 +7,6 @@
 #include "flow.h"
 #include "openvswitch/match.h"
 #include "openvswitch/ofpbuf.h"
-#include "ovstest.h"
 #include "util.h"
 #include "openvswitch/ofp-flow.h"
 #include "openvswitch/vlog.h"
