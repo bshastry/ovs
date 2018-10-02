@@ -10,20 +10,19 @@
 #include "util.h"
 #include "openvswitch/ofp-flow.h"
 #include "openvswitch/vlog.h"
-#include "random.h"
 
 static const int num_filters = 10;
 const char *filters[num_filters] = {
-    "filter='dl_type=0x1235'",
-    "filter='dl_vlan=99'",
-    "filter='dl_vlan=99,ip'",
-    "filter='ip,nw_src=35.8.2.199'",
-    "filter='ip,nw_dst=172.16.0.199'",
-    "filter='dl_type=0x0800,nw_src=35.8.2.199,nw_dst=172.16.0.199'",
-    "filter='icmp,nw_src=35.8.2.199'",
-    "filter='arp,arp_spa=1.2.3.5'",
-    "filter='tcp,tp_src=90'",
-    "filter='tcp6,tp_src=90'"
+    "filter=\'dl_type=0x1235\'",
+    "filter=\'dl_vlan=99\'",
+    "filter=\'dl_vlan=99,ip\'",
+    "filter=\'ip,nw_src=35.8.2.199\'",
+    "filter=\'ip,nw_dst=172.16.0.199\'",
+    "filter=\'dl_type=0x0800,nw_src=35.8.2.199,nw_dst=172.16.0.199\'",
+    "filter=\'icmp,nw_src=35.8.2.199\'",
+    "filter=\'arp,arp_spa=1.2.3.5\'",
+    "filter=\'tcp,tp_src=90\'",
+    "filter=\'tcp6,tp_src=90\'"
 };
 
 static int
@@ -227,8 +226,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     parse_actions(input);
 
     /* Parse filter. */
-    /* TODO: Add filter string. */
-    parse_filter(filters[random_range(num_filters)], input);
+    int idx = size % 10;
+    parse_filter(filters[idx], input);
 
     return 0;
 }
