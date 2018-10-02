@@ -11,20 +11,6 @@
 #include "openvswitch/ofp-flow.h"
 #include "openvswitch/vlog.h"
 
-static const int num_filters = 10;
-const char *filters[num_filters] = {
-    "filter=\'dl_type=0x1235\'",
-    "filter=\'dl_vlan=99\'",
-    "filter=\'dl_vlan=99,ip\'",
-    "filter=\'ip,nw_src=35.8.2.199\'",
-    "filter=\'ip,nw_dst=172.16.0.199\'",
-    "filter=\'dl_type=0x0800,nw_src=35.8.2.199,nw_dst=172.16.0.199\'",
-    "filter=\'icmp,nw_src=35.8.2.199\'",
-    "filter=\'arp,arp_spa=1.2.3.5\'",
-    "filter=\'tcp,tp_src=90\'",
-    "filter=\'tcp6,tp_src=90\'"
-};
-
 static int
 parse_keys(bool wc_keys, const char *in)
 {
@@ -134,74 +120,6 @@ next:
     return 0;
 }
 
-static int
-parse_filter(const char *filter_parse, const char *in)
-{
-    struct flow flow_filter;
-    struct flow_wildcards wc_filter;
-    char *error, *filter = NULL;
-
-    if (filter_parse && !strncmp(filter_parse, "filter=", 7)) {
-        filter = xstrdup(filter_parse + 7);
-        memset(&flow_filter, 0, sizeof(flow_filter));
-        memset(&wc_filter, 0, sizeof(wc_filter));
-
-        error = parse_ofp_exact_flow(&flow_filter, &wc_filter, NULL, filter,
-                                     NULL);
-        if (error) {
-            ovs_fatal(0, "Failed to parse filter (%s)", error);
-        }
-    } else {
-        ovs_fatal(0, "No filter to parse.");
-    }
-
-    struct ofpbuf odp_key;
-    struct ofpbuf odp_mask;
-    struct ds out;
-
-    /* Convert string to OVS DP key. */
-    ofpbuf_init(&odp_key, 0);
-    ofpbuf_init(&odp_mask, 0);
-    if (odp_flow_from_string(in, NULL, &odp_key, &odp_mask)) {
-        printf("odp_flow_from_string: error\n");
-        goto next;
-    }
-
-    if (filter) {
-        struct flow flow;
-        struct flow_wildcards wc;
-        struct match match, match_filter;
-        struct minimatch minimatch;
-
-        odp_flow_key_to_flow(odp_key.data, odp_key.size, &flow);
-        odp_flow_key_to_mask(odp_mask.data, odp_mask.size, &wc, &flow);
-        match_init(&match, &flow, &wc);
-
-        match_init(&match_filter, &flow_filter, &wc);
-        match_init(&match_filter, &match_filter.flow, &wc_filter);
-        minimatch_init(&minimatch, &match_filter);
-
-        if (!minimatch_matches_flow(&minimatch, &match.flow)) {
-            minimatch_destroy(&minimatch);
-            goto next;
-        }
-        minimatch_destroy(&minimatch);
-    }
-    /* Convert odp_key to string. */
-    ds_init(&out);
-    odp_flow_format(odp_key.data, odp_key.size,
-                    odp_mask.data, odp_mask.size, NULL, &out, false);
-    puts(ds_cstr(&out));
-    ds_destroy(&out);
-
-next:
-    ofpbuf_uninit(&odp_key);
-    ofpbuf_uninit(&odp_mask);
-
-    free(filter);
-    return 0;
-}
-
 int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -224,10 +142,6 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     /* Parse actions. */
     parse_actions(input);
-
-    /* Parse filter. */
-    int idx = size % 10;
-    parse_filter(filters[idx], input);
 
     return 0;
 }
