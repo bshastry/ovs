@@ -23,7 +23,7 @@ const char *filters[num_filters] = {
     "filter='icmp,nw_src=35.8.2.199'",
     "filter='arp,arp_spa=1.2.3.5'",
     "filter='tcp,tp_src=90'",
-    "filter='tcp6,tp_src=90'
+    "filter='tcp6,tp_src=90'"
 };
 
 static int
@@ -136,7 +136,7 @@ next:
 }
 
 static int
-parse_filter(char *filter_parse, const char *in)
+parse_filter(const char *filter_parse, const char *in)
 {
     struct flow flow_filter;
     struct flow_wildcards wc_filter;
