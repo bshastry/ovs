@@ -36,7 +36,7 @@ tests_oss_fuzz_odp_target_SOURCES = \
         tests/oss-fuzz/odp_target.c \
         tests/oss-fuzz/fuzzer.h
 tests_oss_fuzz_odp_target_LDADD = lib/libopenvswitch.la
-tests_oss_fuzz_expr_parse_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
+tests_oss_fuzz_odp_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
 
 EXTRA_DIST += \
 	tests/oss-fuzz/config/flow_extract_target.options \
