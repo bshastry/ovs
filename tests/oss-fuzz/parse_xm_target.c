@@ -68,7 +68,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
      * Reserve 1 byte to decide OFP version and oxm/nxm.
      */
     const char *stream = (const char *) data;
-    if (size < 3 || stream[size - 1] != '\0' || strchr(stream, '\n')) {
+    if (size < 3 || stream[size - 1] != '\0' || strchr(stream, '\n') ||
+        (strlen(stream) != size - 1)) {
         return 0;
     }
 
