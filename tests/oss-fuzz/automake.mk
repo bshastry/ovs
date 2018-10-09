@@ -45,6 +45,12 @@ tests_oss_fuzz_parse_xm_target_SOURCES = \
 tests_oss_fuzz_parse_xm_target_LDADD = lib/libopenvswitch.la
 tests_oss_fuzz_parse_xm_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
 
+tests_oss_fuzz_ofctl_parse_target_SOURCES = \
+        tests/oss-fuzz/ofctl_parse_target.c \
+        tests/oss-fuzz/fuzzer.h
+tests_oss_fuzz_ofctl_parse_target_LDADD = lib/libopenvswitch.la
+tests_oss_fuzz_ofctl_parse_target_LDFLAGS = $(LIB_FUZZING_ENGINE) -lc++
+
 EXTRA_DIST += \
 	tests/oss-fuzz/config/flow_extract_target.options \
 	tests/oss-fuzz/config/json_parser_target.options \
@@ -52,6 +58,7 @@ EXTRA_DIST += \
 	tests/oss-fuzz/config/expr_parse_target.options \
 	tests/oss-fuzz/config/odp_target.options \
 	tests/oss-fuzz/config/parse_xm_target.options \
+	tests/oss-fuzz/config/ofctl_parse_target.options \
 	tests/oss-fuzz/config/ovs.dict \
 	tests/oss-fuzz/config/expr.dict \
 	tests/oss-fuzz/config/odp.dict

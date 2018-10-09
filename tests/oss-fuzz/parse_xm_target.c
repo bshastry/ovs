@@ -67,7 +67,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     /* Bail out if we cannot construct at least a 1 char string.
      * Reserve 1 byte to decide OFP version and oxm/nxm.
      */
-    const char *stream = data;
+    const char *stream = (const char *) data;
     if (size < 3 || stream[size - 1] != '\0' || strchr(stream, '\n')) {
         return 0;
     }
@@ -81,10 +81,10 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     /* Decide test parameters using first byte of fuzzed input. */
     bool oxm = stream[0] % 2;
-    enum ofp_version ver = (stream[0] % 7) + 1;
+    enum ofp_version ver = (stream[0] % OFP16_VERSION) + 1;
 
     /* Fuzz extended match parsing. */
-    const char *input = stream[1];
+    const char *input = &stream[1];
     ofctl_parse_nxm(oxm, ver, input);
 
     return 0;
