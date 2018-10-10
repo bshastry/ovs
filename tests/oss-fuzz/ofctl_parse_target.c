@@ -1,5 +1,6 @@
 #include <config.h>
 #include "fuzzer.h"
+#include "ofp-flow.h"
 #include "ofp-version-opt.h"
 #include "ofproto/ofproto.h"
 #include "openflow/openflow.h"
