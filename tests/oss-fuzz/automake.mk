@@ -62,4 +62,5 @@ EXTRA_DIST += \
         tests/oss-fuzz/config/ofctl_parse_target.options \
 	tests/oss-fuzz/config/ovs.dict \
 	tests/oss-fuzz/config/expr.dict \
-	tests/oss-fuzz/config/odp.dict
+	tests/oss-fuzz/config/odp.dict \
+	tests/oss-fuzz/config/ofp-flow.dict
