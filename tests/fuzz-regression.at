@@ -2,7 +2,7 @@ AT_BANNER([fuzz regression])
 
 OVS_START_SHELL_HELPERS
 test_fuzz_regression() {
-   filename=$top_srcdir/tests/fuzz-regression/$1
+   filename=$top_srcdir/tests/fuzz-regression/crashing/$1
    AS_CASE([$1],
      [flow_extract_fuzzer*], [ovs-ofctl parse-packet < $filename],
      [ofp_print_fuzzer*], [ovs-ofctl ofp-parse - < $filename],
